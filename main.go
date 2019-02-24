@@ -6,8 +6,6 @@ import (
 	"math"
 	"os"
 
-	"github.com/sanity-io/litter"
-
 	"github.com/ajstarks/svgo/float"
 )
 
@@ -34,42 +32,68 @@ var (
 		WallOffset:      10,
 		MinHoleDistance: 10,
 	}
-	TestBrett BoardConfiguration = BoardConfiguration{
-		Width:           580,
-		Height:          510,
-		WallOffset:      10,
-		MinHoleDistance: 10,
-	}
-
 	// https://www.holtermann-glasshop.de/Sechseckglaeser/Sechseckglas-580-ml/
 	HolterMannTwistOffSechseckglas580 GlassConfiguration = GlassConfiguration{
 		InnerRadius:   82 / 2,
 		OuterRadius:   95 / 2,
 		NumberOfSides: 6,
 	}
+
+	TestBrett BoardConfiguration = BoardConfiguration{
+		Width:           500,
+		Height:          600,
+		WallOffset:      10,
+		MinHoleDistance: 10,
+	}
+	TestGlas GlassConfiguration = GlassConfiguration{
+		InnerRadius:   60 / 2,
+		OuterRadius:   90 / 2,
+		NumberOfSides: 0,
+	}
 )
 
 const (
+	OriginMarkLength             = 8
 	CenterMarkerlaenge           = 10
 	CenterMarkerStyle            = "stroke:#000000;stroke-opacity:1;stroke-width:0.35277778;stroke-linecap:round"
 	CenterMarkerAnnotationOffset = CenterMarkerlaenge / 1.8
 	CenterMarkerAnnotationStyle  = "font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:3.52777777px;text-anchor:middle;text-align:center;"
 	InnerCircleStyle             = "fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1;"
-	OuterCircleStyle             = "fill:#bdbdbd;stroke:#8e8e8e;stroke-opacity:1;stroke-width:1;stroke-dasharray:1,2;fill-opacity:0.29019609;stroke-dashoffset:0"
+	OuterCircleStyle             = "fill:#bdbdbd;stroke:#8e8e8e;stroke-opacity:1;stroke-width:0.5;stroke-dasharray:1,2;fill-opacity:0.29019609;stroke-dashoffset:0"
 )
 
-func CenterMarker(canvas *svg.SVG, x, y float64) {
+func (board BoardConfiguration) CenterPoint() Point {
+	return Point{board.Width / 2, board.Height / 2}
+}
+
+func (a Point) Plus(b Point) Point {
+	return Point{a.X + b.X, a.Y + b.Y}
+}
+
+func (a Point) Minus(b Point) Point {
+	return Point{a.X - b.X, a.Y - b.Y}
+}
+
+func (a Point) Scale(fac float64) Point {
+	return Point{a.X * fac, a.Y * fac}
+}
+
+func CenterMarker(canvas *svg.SVG, center Point, s ...string) {
+	var x, y float64 = center.X, center.Y
 	// mark center
 	canvas.TranslateRotate(x, y, 45)
-	canvas.Line(-CenterMarkerlaenge/2, 0, CenterMarkerlaenge/2, 0, CenterMarkerStyle)
-	canvas.Line(0, CenterMarkerlaenge/2, 0, -CenterMarkerlaenge/2, CenterMarkerStyle)
+	canvas.Line(-CenterMarkerlaenge/2, 0, CenterMarkerlaenge/2, 0, s...)
+	canvas.Line(0, CenterMarkerlaenge/2, 0, -CenterMarkerlaenge/2, s...)
 	canvas.Gend()
 	// add coordinates
 	canvas.Text(x, y-CenterMarkerAnnotationOffset, fmt.Sprintf("→%.1fmm ↓%.1fmm", x, y), CenterMarkerAnnotationStyle)
 }
 
-func Throughhole(canvas *svg.SVG, x, y, innerRadius, outerRadius float64, numsides int) {
-	// assume a round glass
+func Throughhole(canvas *svg.SVG, center Point, innerRadius, outerRadius float64, numsides int) {
+	var x, y = center.X, center.Y
+
+	canvas.Group()
+	// round glass
 	if numsides < 3 {
 		canvas.Circle(x, y, outerRadius, OuterCircleStyle)
 	} else {
@@ -86,16 +110,16 @@ func Throughhole(canvas *svg.SVG, x, y, innerRadius, outerRadius float64, numsid
 	}
 	canvas.Circle(x, y, innerRadius, InnerCircleStyle)
 	canvas.Text(x, y+innerRadius/2, fmt.Sprintf("Ø %.1fmm", innerRadius*2), CenterMarkerAnnotationStyle)
-	CenterMarker(canvas, x, y)
-
+	CenterMarker(canvas, center, CenterMarkerStyle)
+	canvas.Gend()
 }
 
-func CenterAllHoles(points []Point, board BoardConfiguration) []Point {
+func BoundingBox(points []Point) (Point, Point) {
 	var (
 		xmin, xmax, ymin, ymax float64
 	)
 	if len(points) < 1 {
-		return points
+		return Point{0, 0}, Point{0, 0}
 	}
 
 	// find bounding box
@@ -114,21 +138,59 @@ func CenterAllHoles(points []Point, board BoardConfiguration) []Point {
 			ymax = p.Y
 		}
 	}
-
-	// TODO: fix
-	// calculate offset by comparing the middle points
-	xoff := (board.Width / 2) - (xmax-xmin)/2
-	yoff := (board.Height / 2) - (ymax-ymin)/2
-	litter.Dump(board, xmin, xmax, ymin, ymax, xoff, yoff)
-
-	for idx := range points {
-		points[idx].X = points[idx].X - xoff
-		points[idx].Y = points[idx].Y - yoff
-	}
-	return points
+	return Point{xmin, ymin}, Point{xmax, ymax}
 }
 
-func GenerateBoard(board BoardConfiguration, glass GlassConfiguration) ([]Point, []Point) {
+func Centroid(points []Point) Point {
+	var c = Point{0, 0}
+	for _, p := range points {
+		c = c.Plus(p)
+	}
+	return c.Scale(1.0 / float64(len(points)))
+}
+
+func MovePoints(points []Point, vec Point) []Point {
+	var newPoints []Point
+	for idx := range points {
+		newPoints = append(newPoints, points[idx].Plus(vec))
+	}
+	return newPoints
+}
+
+func MidPoint(a, b Point) Point {
+	var (
+		xmin, xmax, ymin, ymax float64 = a.X, b.X, a.Y, b.Y
+	)
+	if xmin > xmax {
+		xmin, xmax = xmax, xmin
+	}
+	if ymin > ymax {
+		ymin, ymax = ymax, ymin
+	}
+
+	return Point{(xmax - xmin) / 2, (ymax - ymin) / 2}
+}
+
+func CenterAllHoles(points []Point, board BoardConfiguration) []Point {
+	var (
+		HolesMidPoint    Point
+		BoardMidPoint    Point
+		CorrectionVector Point
+	)
+	if len(points) < 1 {
+		return points
+	}
+
+	HolesMidPoint = Centroid(points)
+	BoardMidPoint = MidPoint(Point{0, 0}, Point{board.Width, board.Height})
+	CorrectionVector = (BoardMidPoint.Minus(HolesMidPoint))
+
+	centeredPoints := MovePoints(points, CorrectionVector)
+
+	return centeredPoints
+}
+
+func GenerateHoles(board BoardConfiguration, glass GlassConfiguration) ([]Point, []Point) {
 	var (
 		holeDistance = 2*glass.InnerRadius + board.MinHoleDistance
 		sideOffset   = board.WallOffset + glass.InnerRadius
@@ -168,44 +230,61 @@ func GenerateBoard(board BoardConfiguration, glass GlassConfiguration) ([]Point,
 		odd = !odd
 	}
 
-	//return CenterAllHoles(squareholes, board), CenterAllHoles(hexholes, board)
-	return squareholes, hexholes
+	return CenterAllHoles(squareholes, board), CenterAllHoles(hexholes, board)
+	//return squareholes, hexholes
+}
+
+func DrawBoard(canvas *svg.SVG, board BoardConfiguration, origin bool) {
+	canvas.Group("Board")
+	canvas.Path(fmt.Sprintf("M %f %f L %f %f L %f %f L %f %f L %f %f z M %f %f L %f %f L %f %f L %f %f L %f %f z",
+		0.0, 0.0,
+		board.Width, 0.0,
+		board.Width, board.Height,
+		0.0, board.Height,
+		0.0, 0.0,
+		board.WallOffset, board.WallOffset,
+		board.Width-board.WallOffset, board.WallOffset,
+		board.Width-board.WallOffset, board.Height-board.WallOffset,
+		board.WallOffset, board.Height-board.WallOffset,
+		board.WallOffset, board.WallOffset),
+		"stroke:#000000;stroke-opacity:1;stroke-width:0.3;fill:#DDDDDD;"+"fill-rule:evenodd;")
+	if origin {
+		// mark origin
+		canvas.Polygon([]float64{0, OriginMarkLength, 0}, []float64{0, 0, OriginMarkLength}, "stroke:none;fill:#000000;fill-opacity:1")
+	}
+	canvas.Gend()
 }
 
 func main() {
 	var (
-		f      *os.File
-		err    error
-		canvas *svg.SVG
-		board  = TestBrett
-		glass  = HolterMannTwistOffSechseckglas580
+		f        *os.File
+		err      error
+		canvas   *svg.SVG
+		variants = make(map[string][]Point)
+		board    = TestBrett
+		glass    = TestGlas
 	)
 
-	square, hex := GenerateBoard(board, glass)
+	square, hex := GenerateHoles(board, glass)
+	variants[`square.svg`] = square
+	variants[`hex.svg`] = hex
 	fmt.Printf("Sqare: %d\nHex:   %d\n", len(square), len(hex))
 
-	f, err = os.OpenFile("square.svg", os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
+	for filename, points := range variants {
+		f, err = os.OpenFile(filename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		canvas = svg.New(f)
+		canvas.Startunit(board.Width, board.Height, "mm", fmt.Sprintf(`viewBox="0 0 %f %f"`, board.Width, board.Height))
+		DrawBoard(canvas, board, true)
+		canvas.Group("Holes")
+		for _, p := range points {
+			Throughhole(canvas, p, glass.InnerRadius, glass.OuterRadius, glass.NumberOfSides)
+		}
+		canvas.Gend()
+		canvas.End()
 	}
-	canvas = svg.New(f)
-	canvas.Startunit(board.Width, board.Height, "mm", fmt.Sprintf(`viewBox="0 0 %f %f"`, board.Width, board.Height))
-	for _, p := range square {
-		Throughhole(canvas, p.X, p.Y, glass.InnerRadius, glass.OuterRadius, glass.NumberOfSides)
-	}
-	canvas.End()
-	f.Close()
-
-	f, err = os.OpenFile("hex.svg", os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	canvas = svg.New(f)
-	canvas.Startunit(board.Width, board.Height, "mm", fmt.Sprintf(`viewBox="0 0 %f %f"`, board.Width, board.Height))
-	for _, p := range hex {
-		Throughhole(canvas, p.X, p.Y, glass.InnerRadius, glass.OuterRadius, glass.NumberOfSides)
-	}
-	canvas.End()
-	f.Close()
 
 }
