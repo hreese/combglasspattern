@@ -38,7 +38,24 @@ var (
 		OuterRadius:   95 / 2,
 		NumberOfSides: 6,
 	}
-
+	// https://www.holtermann-glasshop.de/Designglaeser/Viereckglas-312-ml/Viereckglas-312-ml-Biene.html
+	HolterMannTwistOffViereckglas312 GlassConfiguration = GlassConfiguration{
+		InnerRadius:   60 / 2,
+		OuterRadius:   75 / 2,
+		NumberOfSides: 4,
+	}
+	// https://www.flaschenbauer.de/einmachglaeser/sechskantglaeser/sechskantglas-580-ml-to-82
+	FlaschenBauerSechskantglas580mlTO82 GlassConfiguration = GlassConfiguration{
+		InnerRadius:   82 / 2,
+		OuterRadius:   95 / 2,
+		NumberOfSides: 6,
+	}
+	// https://www.bienen-ruck.de/imkershop/honigverkauf-werbemittel/twist-off-glaeser/1902/wabenglaeser-rund
+	BienenRuckWabengläserRund500 GlassConfiguration = GlassConfiguration{
+		InnerRadius:   82 / 2,
+		OuterRadius:   90 / 2,
+		NumberOfSides: 0,
+	}
 	TestBrett BoardConfiguration = BoardConfiguration{
 		Width:           500,
 		Height:          600,
@@ -261,8 +278,8 @@ func main() {
 		err      error
 		canvas   *svg.SVG
 		variants = make(map[string][]Point)
-		board    = TestBrett
-		glass    = TestGlas
+		board    = DadantWeber
+		glass    = BienenRuckWabengläserRund500
 	)
 
 	square, hex := GenerateHoles(board, glass)
