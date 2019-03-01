@@ -26,46 +26,61 @@ type GlassConfiguration struct {
 }
 
 var (
-	DadantWeber BoardConfiguration = BoardConfiguration{
-		Width:           490,
-		Height:          490,
-		WallOffset:      10,
-		MinHoleDistance: 10,
+	PresetsBoard = map[string]BoardConfiguration{
+		"DadantWeber": {
+			Width:           490,
+			Height:          490,
+			WallOffset:      10,
+			MinHoleDistance: 10,
+		},
+		"TestBrett": {
+			Width:           500,
+			Height:          600,
+			WallOffset:      10,
+			MinHoleDistance: 10,
+		},
+		"DemoBrettA4": {
+			Width: 210-20,
+			Height: 297-20,
+			WallOffset: 5,
+			MinHoleDistance: 5,
+		},
 	}
-	// https://www.holtermann-glasshop.de/Sechseckglaeser/Sechseckglas-580-ml/
-	HolterMannTwistOffSechseckglas580 GlassConfiguration = GlassConfiguration{
-		InnerRadius:   82 / 2,
-		OuterRadius:   95 / 2,
-		NumberOfSides: 6,
-	}
-	// https://www.holtermann-glasshop.de/Designglaeser/Viereckglas-312-ml/Viereckglas-312-ml-Biene.html
-	HolterMannTwistOffViereckglas312 GlassConfiguration = GlassConfiguration{
-		InnerRadius:   60 / 2,
-		OuterRadius:   75 / 2,
-		NumberOfSides: 4,
-	}
-	// https://www.flaschenbauer.de/einmachglaeser/sechskantglaeser/sechskantglas-580-ml-to-82
-	FlaschenBauerSechskantglas580mlTO82 GlassConfiguration = GlassConfiguration{
-		InnerRadius:   82 / 2,
-		OuterRadius:   95 / 2,
-		NumberOfSides: 6,
-	}
-	// https://www.bienen-ruck.de/imkershop/honigverkauf-werbemittel/twist-off-glaeser/1902/wabenglaeser-rund
-	BienenRuckWabengläserRund500 GlassConfiguration = GlassConfiguration{
-		InnerRadius:   82 / 2,
-		OuterRadius:   90 / 2,
-		NumberOfSides: 0,
-	}
-	TestBrett BoardConfiguration = BoardConfiguration{
-		Width:           500,
-		Height:          600,
-		WallOffset:      10,
-		MinHoleDistance: 10,
-	}
-	TestGlas GlassConfiguration = GlassConfiguration{
-		InnerRadius:   60 / 2,
-		OuterRadius:   90 / 2,
-		NumberOfSides: 0,
+	PresetGlas = map[string]GlassConfiguration{
+		// https://www.holtermann-glasshop.de/Sechseckglaeser/Sechseckglas-580-ml/
+		"HolterMannTwistOffSechseckglas580": {
+			InnerRadius:   82 / 2,
+			OuterRadius:   95 / 2,
+			NumberOfSides: 6,
+		},
+		// https://www.holtermann-glasshop.de/Designglaeser/Viereckglas-312-ml/Viereckglas-312-ml-Biene.html
+		"HolterMannTwistOffViereckglas312": {
+			InnerRadius:   60 / 2,
+			OuterRadius:   75 / 2,
+			NumberOfSides: 4,
+		},
+		// https://www.flaschenbauer.de/einmachglaeser/sechskantglaeser/sechskantglas-580-ml-to-82
+		"FlaschenBauerSechskantglas580mlTO82": {
+			InnerRadius:   82 / 2,
+			OuterRadius:   95 / 2,
+			NumberOfSides: 6,
+		},
+		// https://www.bienen-ruck.de/imkershop/honigverkauf-werbemittel/twist-off-glaeser/1902/wabenglaeser-rund
+		"BienenRuckWabengläserRund500": {
+			InnerRadius:   82 / 2,
+			OuterRadius:   90 / 2,
+			NumberOfSides: 0,
+		},
+		"TestGlas": {
+			InnerRadius:   60 / 2,
+			OuterRadius:   90 / 2,
+			NumberOfSides: 0,
+		},
+		"DemoGlasEckig": {
+			InnerRadius: 45/2,
+			OuterRadius: 54/2,
+			NumberOfSides: 8,
+		},
 	}
 )
 
@@ -278,8 +293,10 @@ func main() {
 		err      error
 		canvas   *svg.SVG
 		variants = make(map[string][]Point)
-		board    = DadantWeber
-		glass    = BienenRuckWabengläserRund500
+		//board    = PresetsBoard["DadantWeber"]
+		//glass    = PresetGlas["BienenRuckWabengläserRund500"]
+		board    = PresetsBoard["DemoBrettA4"]
+		glass    = PresetGlas["DemoGlasEckig"]
 	)
 
 	square, hex := GenerateHoles(board, glass)
