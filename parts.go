@@ -21,8 +21,8 @@ var (
 			MinHoleDistance: 10,
 		},
 		"ZanderSpec": {
-			Width:           480 - 2*18,
-			Height:          360,
+			Width:           435,
+			Height:          380,
 			WallOffset:      10,
 			MinHoleDistance: 10,
 		},
