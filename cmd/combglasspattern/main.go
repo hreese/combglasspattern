@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -21,8 +23,11 @@ func CenterAllHoles(points []Point, board BoardConfiguration) []Point {
 	}
 
 	HolesMidPoint = Centroid(points)
+	//HolesMidPoint = MidPoint(BoundingBox(points))
 	BoardMidPoint = MidPoint(Point{0, 0}, Point{board.Width, board.Height})
 	CorrectionVector = (BoardMidPoint.Minus(HolesMidPoint))
+
+	//litter.Dump(HolesMidPoint, BoardMidPoint, CorrectionVector)
 
 	centeredPoints := MovePoints(points, CorrectionVector)
 
@@ -74,7 +79,8 @@ func GenerateHoles(board BoardConfiguration, glass GlassConfiguration) ([]Point,
 		odd = !odd
 	}
 
-	return HolesSquare, HolesHexOne, HolesHexTwo
+	//return HolesSquare, HolesHexOne, HolesHexTwo
+	return CenterAllHoles(HolesSquare, board), CenterAllHoles(HolesHexOne, board), CenterAllHoles(HolesHexTwo, board)
 }
 
 type Variant struct {
@@ -96,20 +102,25 @@ func main() {
 	)
 
 	square, hexOne, hexTwo := GenerateHoles(board, glass)
-	variants[`Square.svg`] = Variant{square, board, glass}
-	variants[`HexOne.svg`] = Variant{hexOne, board, glass}
-	variants[`HexTwo.svg`] = Variant{hexTwo, board, glass}
+	variants[`Square`] = Variant{square, board, glass}
+	variants[`HexOne`] = Variant{hexOne, board, glass}
+	variants[`HexTwo`] = Variant{hexTwo, board, glass}
 	fmt.Printf("Sqare:   %d\nHexOne:  %d\nHexTwo:  %d\n", len(square), len(hexOne), len(hexTwo))
 	if !board.IsSquare() {
 		turnedBoard := board.Turn90()
 		_, hexThree, hexFour := GenerateHoles(turnedBoard, glass)
-		variants[`HexThree.svg`] = Variant{hexThree, turnedBoard, glass}
-		variants[`HexFour.svg`] = Variant{hexFour, turnedBoard, glass}
+		variants[`HexThree`] = Variant{hexThree, turnedBoard, glass}
+		variants[`HexFour`] = Variant{hexFour, turnedBoard, glass}
 		fmt.Printf("HexThree:  %d\nHexFour:  %d\n", len(hexThree), len(hexFour))
 	}
 
 	for filename, variant := range variants {
-		f, err = os.OpenFile(filename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+		var pointsAsText bytes.Buffer
+		_, _ = fmt.Fprintf(&pointsAsText, "// board dimensions: %.1fmm x %.1fmm\n", board.Width, board.Height)
+		_, _ = fmt.Fprintf(&pointsAsText, "// glass dimensions: inner Ø: %.1fmm ; outer Ø: %.1fmm\n", glass.InnerRadius*2, glass.OuterRadius*2)
+		_, _ = fmt.Fprintln(&pointsAsText, "")
+		// open svg file
+		f, err = os.OpenFile(fmt.Sprintf("%s.svg", filename), os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -121,9 +132,12 @@ func main() {
 		canvas.Group("Holes")
 		for _, p := range variant.points {
 			Throughhole(canvas, p, variant.glass.InnerRadius, variant.glass.OuterRadius, variant.glass.NumberOfSides)
+			_, _ = fmt.Fprintf(&pointsAsText, "%6.1f → %6.1f ↓\n", p.X, p.Y)
 		}
 		canvas.Gend()
 		canvas.End()
+
+		_ = ioutil.WriteFile(fmt.Sprintf("drillpoints_%s.txt", filename), pointsAsText.Bytes(), 0644)
 	}
 
 }

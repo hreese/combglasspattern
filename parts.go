@@ -66,7 +66,7 @@ var (
 		},
 		"TestGlas": {
 			InnerRadius:   60 / 2,
-			OuterRadius:   62 / 2,
+			OuterRadius:   88 / 2,
 			NumberOfSides: 0,
 		},
 		"DemoGlasEckig": {
