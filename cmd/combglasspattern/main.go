@@ -29,7 +29,7 @@ func CenterAllHoles(points []Point, board BoardConfiguration) []Point {
 	return centeredPoints
 }
 
-func GenerateHolesNew(board BoardConfiguration, glass GlassConfiguration) ([]Point, []Point, []Point) {
+func GenerateHoles(board BoardConfiguration, glass GlassConfiguration) ([]Point, []Point, []Point) {
 	var (
 		EdgeOffset, GlassOffset, OffsetOne, OffsetTwo float64
 		UpperLeft, LowerRight                         Point
@@ -77,50 +77,6 @@ func GenerateHolesNew(board BoardConfiguration, glass GlassConfiguration) ([]Poi
 	return HolesSquare, HolesHexOne, HolesHexTwo
 }
 
-func GenerateHoles(board BoardConfiguration, glass GlassConfiguration) ([]Point, []Point) {
-	var (
-		holeDistance = 2*glass.InnerRadius + board.MinHoleDistance
-		sideOffset   = board.WallOffset + glass.InnerRadius
-		squareholes  = make([]Point, 0)
-		hexholes     = make([]Point, 0)
-		xoff         float64
-	)
-
-	// find minimal hole distance
-	if 2*glass.OuterRadius > holeDistance {
-		holeDistance = 2 * glass.OuterRadius
-	}
-
-	// find minimal initial wall distance
-	if glass.OuterRadius > sideOffset {
-		sideOffset = glass.OuterRadius
-	}
-
-	// variant "square"
-	for x := sideOffset; x < board.Width-board.WallOffset-glass.InnerRadius; x += holeDistance {
-		for y := sideOffset; y < board.Height-board.WallOffset-glass.InnerRadius; y += holeDistance {
-			squareholes = append(squareholes, Point{x, y})
-		}
-	}
-
-	// variant "hex"
-	odd := true
-	for y := sideOffset; y < board.Height-board.WallOffset-glass.InnerRadius; y += holeDistance * math.Sin(math.Pi/3.0) {
-		if !odd {
-			xoff = holeDistance / 2
-		} else {
-			xoff = 0
-		}
-		for x := xoff + sideOffset; x < board.Width-board.WallOffset-glass.InnerRadius; x += holeDistance {
-			hexholes = append(hexholes, Point{x, y})
-		}
-		odd = !odd
-	}
-
-	return CenterAllHoles(squareholes, board), CenterAllHoles(hexholes, board)
-	//return squareholes, hexholes
-}
-
 type Variant struct {
 	points []Point
 	board  BoardConfiguration
@@ -139,16 +95,16 @@ func main() {
 		glass = PresetGlas["TestGlas"]
 	)
 
-	square, hexOne, hexTwo := GenerateHolesNew(board, glass)
+	square, hexOne, hexTwo := GenerateHoles(board, glass)
 	variants[`Square.svg`] = Variant{square, board, glass}
 	variants[`HexOne.svg`] = Variant{hexOne, board, glass}
 	variants[`HexTwo.svg`] = Variant{hexTwo, board, glass}
 	fmt.Printf("Sqare:   %d\nHexOne:  %d\nHexTwo:  %d\n", len(square), len(hexOne), len(hexTwo))
 	if !board.IsSquare() {
 		turnedBoard := board.Turn90()
-		_, hexThree, hexFour := GenerateHolesNew(turnedBoard, glass)
-		variants[`HexThree.svg`] =  Variant{hexThree, turnedBoard, glass}
-		variants[`HexFour.svg`] =  Variant{hexFour, turnedBoard, glass}
+		_, hexThree, hexFour := GenerateHoles(turnedBoard, glass)
+		variants[`HexThree.svg`] = Variant{hexThree, turnedBoard, glass}
+		variants[`HexFour.svg`] = Variant{hexFour, turnedBoard, glass}
 		fmt.Printf("HexThree:  %d\nHexFour:  %d\n", len(hexThree), len(hexFour))
 	}
 
