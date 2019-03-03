@@ -1,0 +1,35 @@
+image: golang:latest
+
+variables:
+  REPO_NAME: gitlab.com/hreese/combglasspattern
+
+before_script:
+  - go version
+  - echo $CI_BUILD_REF
+  - echo $CI_PROJECT_DIR
+
+stages:
+  - build
+
+.test-project:
+  stage: test
+  script:
+    - mkdir -p $GOPATH/src/$REPO_NAME
+    - mv $CI_PROJECT_DIR/* $GOPATH/src/$REPO_NAME
+    - cd $GOPATH/src/$REPO_NAME
+    - go get -v .
+    - go test $(go list ./... | grep -v /vendor/)
+
+build-project:
+  stage: build
+  script:
+    - OUTPUT="output"
+    - mkdir -p $GOPATH/src/$REPO_NAME
+    - mv $CI_PROJECT_DIR/* $GOPATH/src/$REPO_NAME/
+    - cd $GOPATH/src/$REPO_NAME
+    - go get -v .
+    - bash build-all.sh $OUTPUT $CI_PROJECT_DIR
+
+  artifacts:
+    paths:
+      - artifacts/
