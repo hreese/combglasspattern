@@ -5,83 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"os"
 
 	"github.com/ajstarks/svgo/float"
 	. "gitlab.com/hreese/combglasspattern"
 )
-
-func CenterAllHoles(points []Point, board BoardConfiguration) []Point {
-	var (
-		HolesMidPoint    Point
-		BoardMidPoint    Point
-		CorrectionVector Point
-	)
-	if len(points) < 1 {
-		return points
-	}
-
-	HolesMidPoint = Centroid(points)
-	//HolesMidPoint = MidPoint(BoundingBox(points))
-	BoardMidPoint = MidPoint(Point{0, 0}, Point{board.Width, board.Height})
-	CorrectionVector = (BoardMidPoint.Minus(HolesMidPoint))
-
-	//litter.Dump(HolesMidPoint, BoardMidPoint, CorrectionVector)
-
-	centeredPoints := MovePoints(points, CorrectionVector)
-
-	return centeredPoints
-}
-
-func GenerateHoles(board BoardConfiguration, glass GlassConfiguration) ([]Point, []Point, []Point) {
-	var (
-		EdgeOffset, GlassOffset, OffsetOne, OffsetTwo float64
-		UpperLeft, LowerRight                         Point
-		HolesSquare, HolesHexOne, HolesHexTwo         []Point
-	)
-	// minimal distance from board's edge
-	EdgeOffset = math.Max(
-		board.WallOffset+glass.InnerRadius,
-		glass.OuterRadius)
-	// minimal distance between two glasses
-	GlassOffset = math.Max(
-		2*glass.InnerRadius+board.MinHoleDistance,
-		2*glass.OuterRadius)
-	// bounding box for glass midpoints
-	UpperLeft = Point{EdgeOffset, EdgeOffset}
-	LowerRight = Point{board.Width - EdgeOffset, board.Height - EdgeOffset}
-
-	// variant "square"
-	for y := UpperLeft.Y; y <= LowerRight.Y; y += GlassOffset {
-		for x := UpperLeft.X; x <= LowerRight.X; x += GlassOffset {
-			HolesSquare = append(HolesSquare, Point{x, y})
-		}
-	}
-
-	// variants hex
-	odd := true
-	for y := UpperLeft.Y; y <= LowerRight.Y; y += GlassOffset * math.Sin(math.Pi/3.0) {
-		// alternate x offsets
-		if odd {
-			OffsetOne, OffsetTwo = 0, GlassOffset/2
-		} else {
-			OffsetOne, OffsetTwo = GlassOffset/2, 0
-		}
-		// one
-		for x := UpperLeft.X + OffsetOne; x <= LowerRight.X; x += GlassOffset {
-			HolesHexOne = append(HolesHexOne, Point{x, y})
-		}
-		// two
-		for x := UpperLeft.X + OffsetTwo; x <= LowerRight.X; x += GlassOffset {
-			HolesHexTwo = append(HolesHexTwo, Point{x, y})
-		}
-		odd = !odd
-	}
-
-	//return HolesSquare, HolesHexOne, HolesHexTwo
-	return CenterAllHoles(HolesSquare, board), CenterAllHoles(HolesHexOne, board), CenterAllHoles(HolesHexTwo, board)
-}
 
 type Variant struct {
 	points []Point
@@ -137,7 +65,10 @@ func main() {
 		canvas.Gend()
 		canvas.End()
 
-		_ = ioutil.WriteFile(fmt.Sprintf("drillpoints_%s.txt", filename), pointsAsText.Bytes(), 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("drillpoints_%s.txt", filename), pointsAsText.Bytes(), 0644)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 }
