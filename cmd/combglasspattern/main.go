@@ -13,7 +13,7 @@ func main() {
 		board    = PresetsBoard["DadantWeber"]
 		glass    = PresetGlas["BienenRuckWabengläserRund500"]
 		//board = PresetsBoard["ZanderSpec"]
-		//glass = PresetGlas["TestGlas"]
+		//glass = PresetGlas["DemoGlasEckig"]
 	)
 
 	square, hexOne, hexTwo := GenerateHoles(board, glass)

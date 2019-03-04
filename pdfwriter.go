@@ -2,6 +2,7 @@ package combglasspattern
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/jung-kurt/gofpdf"
 )
@@ -54,18 +55,24 @@ func PDFThroughhole(pdf *gofpdf.Fpdf, center Point, innerRadius, outerRadius flo
 	)
 
 	// glass outline
+	pdf.SetLineWidth(0)
+	pdf.SetFillColor(0xdd, 0xdd, 0xdd)
+	pdf.SetAlpha(0.2890625, "Normal")
 	if numsides < 3 {
-		pdf.SetLineWidth(0)
-		pdf.SetFillColor(0xbd, 0xbd, 0xbd)
-		pdf.SetAlpha(0.2890625, "Screen")
 		pdf.Circle(x, y, outerRadius, "DF")
 	} else {
-		// TODO
+		angleStep := math.Pi * 2 / float64(numsides)
+		pdf.MoveTo(x+outerRadius, y)
+		for step := 1; step < numsides; step++ {
+			pdf.LineTo(x+outerRadius * math.Cos(float64(step)*angleStep), y+outerRadius * math.Sin(float64(step)*angleStep))
+		}
+		pdf.ClosePath()
+		pdf.DrawPath("DF")
 	}
 
 	// hole outline
 	pdf.SetAlpha(1.0, "Normal")
-	pdf.SetFillColor(0xff, 0xff, 0xff)
+	//pdf.SetFillColor(0xff, 0xff, 0xff)
 	pdf.Circle(x, y, innerRadius, "DF")
 
 	// crossmark
@@ -74,9 +81,15 @@ func PDFThroughhole(pdf *gofpdf.Fpdf, center Point, innerRadius, outerRadius flo
 	pdf.Line(x+crossoffset, y-crossoffset, x-crossoffset, y+crossoffset)
 	cellwidth := 200.0
 	cellheight := 16.0
-	celltext := fmt.Sprintf("=> %.1fmm v%.1fmm", x, y)
+	celltext := fmt.Sprintf("x: %.1fmm y: %.1fmm", x, y)
+	//celltext := fmt.Sprintf("→%.1fmm ↓%.1fmm", x, y)
+	tr := pdf.UnicodeTranslatorFromDescriptor("")
+	// coordinates
 	pdf.MoveTo(x-cellwidth, y-cellheight)
-	pdf.CellFormat(2*cellwidth, cellheight, celltext, "", 0, "C", false, 0 , "")
+	pdf.CellFormat(2*cellwidth, cellheight, tr(celltext), "", 0, "C", false, 0 , "")
+	// diameter
+	pdf.MoveTo(x-cellwidth, y)
+	pdf.CellFormat(2*cellwidth, cellheight, tr(fmt.Sprintf("diam: %.1fmm", innerRadius*2)), "", 0, "C", false, 0 , "")
 
 	// restore old FillColor and Linewidth
 	pdf.SetFillColor(oldred, oldgreen, oldblue)

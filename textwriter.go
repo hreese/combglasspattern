@@ -11,7 +11,7 @@ func WriteTextfile(filenameprefix string, variant Variant) error {
 		contents bytes.Buffer
 		err      error
 	)
-	filename := fmt.Sprintf("%s_drillpoints.txt", filenameprefix)
+	filename := fmt.Sprintf("%s.txt", filenameprefix)
 
 	_, err = fmt.Fprintf(&contents, "// Board dimensions: %.1fmm x %.1fmm\n", variant.Board.Width, variant.Board.Height)
 	if err != nil {
