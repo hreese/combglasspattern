@@ -12,11 +12,17 @@ type GlassConfiguration struct {
 	NumberOfSides int
 }
 
+type Variant struct {
+	Points []Point
+	Board  BoardConfiguration
+	Glass  GlassConfiguration
+}
+
 var (
 	PresetsBoard = map[string]BoardConfiguration{
 		"DadantWeber": {
-			Width:           490,
-			Height:          490,
+			Width:           464,
+			Height:          464,
 			WallOffset:      10,
 			MinHoleDistance: 10,
 		},

@@ -19,7 +19,7 @@ func (a Point) Scale(fac float64) Point {
 	return Point{a.X * fac, a.Y * fac}
 }
 
-// BoundingBox returns the smallest box encompassing all points
+// BoundingBox returns the smallest box encompassing all Points
 func BoundingBox(points []Point) (Point, Point) {
 	var (
 		xmin, xmax, ymin, ymax float64
@@ -79,7 +79,7 @@ func CenterAllHoles(points []Point, board BoardConfiguration) []Point {
 	}
 
 	HolesMidPoint = Centroid(points)
-	//HolesMidPoint = MidPoint(BoundingBox(points))
+	//HolesMidPoint = MidPoint(BoundingBox(Points))
 	BoardMidPoint = MidPoint(Point{0, 0}, Point{board.Width, board.Height})
 	CorrectionVector = (BoardMidPoint.Minus(HolesMidPoint))
 
@@ -96,7 +96,7 @@ func GenerateHoles(board BoardConfiguration, glass GlassConfiguration) ([]Point,
 		UpperLeft, LowerRight                         Point
 		HolesSquare, HolesHexOne, HolesHexTwo         []Point
 	)
-	// minimal distance from board's edge
+	// minimal distance from Board's edge
 	EdgeOffset = math.Max(
 		board.WallOffset+glass.InnerRadius,
 		glass.OuterRadius)

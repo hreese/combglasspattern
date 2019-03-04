@@ -2,9 +2,9 @@ package combglasspattern
 
 import (
 	"fmt"
-	"math"
-
 	"github.com/ajstarks/svgo/float"
+	"math"
+	"os"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 	BoardLineStyle               = "stroke:#000000;stroke-opacity:1;stroke-width:0.3;fill:#DDDDDD;" + "fill-rule:evenodd;"
 )
 
-func CenterMarker(canvas *svg.SVG, center Point, s ...string) {
+func SVGCenterMarker(canvas *svg.SVG, center Point, s ...string) {
 	var x, y float64 = center.X, center.Y
 	// mark center
 	canvas.TranslateRotate(x, y, 45)
@@ -29,11 +29,11 @@ func CenterMarker(canvas *svg.SVG, center Point, s ...string) {
 	canvas.Text(x, y-CenterMarkerAnnotationOffset, fmt.Sprintf("→%.1fmm ↓%.1fmm", x, y), CenterMarkerAnnotationStyle)
 }
 
-func Throughhole(canvas *svg.SVG, center Point, innerRadius, outerRadius float64, numsides int) {
+func SVGThroughhole(canvas *svg.SVG, center Point, innerRadius, outerRadius float64, numsides int) {
 	var x, y = center.X, center.Y
 
 	canvas.Group()
-	// round glass
+	// round Glass
 	if numsides < 3 {
 		canvas.Circle(x, y, outerRadius, OuterCircleStyle)
 	} else {
@@ -50,11 +50,11 @@ func Throughhole(canvas *svg.SVG, center Point, innerRadius, outerRadius float64
 	}
 	canvas.Circle(x, y, innerRadius, InnerCircleStyle)
 	canvas.Text(x, y+innerRadius/2, fmt.Sprintf("Ø %.1fmm", innerRadius*2), CenterMarkerAnnotationStyle)
-	CenterMarker(canvas, center, CenterMarkerStyle)
+	SVGCenterMarker(canvas, center, CenterMarkerStyle)
 	canvas.Gend()
 }
 
-func DrawBoard(canvas *svg.SVG, board BoardConfiguration, origin bool) {
+func SVGDrawBoard(canvas *svg.SVG, board BoardConfiguration, markOrigin bool) {
 	canvas.Group("Board")
 	canvas.Path(fmt.Sprintf("M %f %f L %f %f L %f %f L %f %f L %f %f z M %f %f L %f %f L %f %f L %f %f L %f %f z",
 		0.0, 0.0,
@@ -68,9 +68,40 @@ func DrawBoard(canvas *svg.SVG, board BoardConfiguration, origin bool) {
 		board.WallOffset, board.Height-board.WallOffset,
 		board.WallOffset, board.WallOffset),
 		BoardLineStyle)
-	if origin {
-		// mark origin
+	if markOrigin {
+		// mark markOrigin
 		canvas.Polygon([]float64{0, OriginMarkLength, 0}, []float64{0, 0, OriginMarkLength}, "stroke:none;fill:#000000;fill-opacity:1")
 	}
 	canvas.Gend()
+}
+
+
+func WriteSVG(filenameprefix string, variant Variant) error {
+	var (
+		f        *os.File
+		err      error
+		canvas   *svg.SVG
+		filename string
+	)
+	filename = fmt.Sprintf("%s.svg", filenameprefix)
+
+	// open svg file
+	f, err = os.OpenFile(filename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	canvas = svg.New(f)
+	canvas.Startunit(variant.Board.Width, variant.Board.Height, "mm",
+		fmt.Sprintf(`viewBox="0 0 %f %f"`, variant.Board.Width, variant.Board.Height))
+	SVGDrawBoard(canvas, variant.Board, true)
+	canvas.Group("Holes")
+	for _, p := range variant.Points {
+		SVGThroughhole(canvas, p, variant.Glass.InnerRadius, variant.Glass.OuterRadius, variant.Glass.NumberOfSides)
+	}
+	canvas.Gend()
+	canvas.End()
+
+	return nil
 }
